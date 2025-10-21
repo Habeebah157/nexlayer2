@@ -1,0 +1,7 @@
+application:
+  name: "nexlayer-test-app"
+  pods:
+    - name: "web"
+      image: "registry.nexlayer.io/nexlayer-mcp/5d18a792-add3-4d25-8120-20ede3bb3f96/nexlayer2-34ebe933-nexlayer-test-app:963649d0-1761073946"
+      path: "/"
+      servicePorts: [80]
