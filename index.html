@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NexLayer Quick Test</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;max-width:900px;margin:32px auto;padding:0 16px;color:#111}
+    header{display:flex;align-items:center;gap:12px}
+    label{display:block;margin-top:12px;font-weight:600}
+    input[type=text],select,textarea{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px}
+    button{margin-top:12px;padding:10px 14px;background:#0b5fff;color:#fff;border:none;border-radius:8px;cursor:pointer}
+    pre{background:#f6f8fa;padding:12px;border-radius:8px;overflow:auto}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .muted{color:#666;font-size:0.95rem}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NexLayer Quick Test</h1>
+    <div class="muted">(Simple HTTP tester using fetch)</div>
+  </header>
+
+  <p>Enter the NexLayer endpoint you want to test. If you're testing a local NexLayer proxy, use its local URL (for example, <code>http://localhost:8080/your-path</code>).</p>
+
+  <label for="url">Endpoint URL</label>
+  <input id="url" type="text" placeholder="https://example.com/api" value="https://httpbin.org/post" />
+
+  <div class="row">
+    <div>
+      <label for="method">Method</label>
+      <select id="method">
+        <option>GET</option>
+        <option>POST</option>
+        <option>PUT</option>
+        <option>DELETE</option>
+      </select>
+    </div>
+    <div>
+      <label for="contentType">Content-Type</label>
+      <select id="contentType">
+        <option value="application/json">application/json</option>
+        <option value="text/plain">text/plain</option>
+        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+      </select>
+    </div>
+  </div>
+
+  <label for="body">Request body (for POST/PUT)</label>
+  <textarea id="body" rows="6">{"test":"hello nexlayer"}</textarea>
+
+  <button id="send">Send Request</button>
+  <button id="clear" style="background:#e6e6e6;color:#111;margin-left:8px">Clear Output</button>
+
+  <h3>Result</h3>
+  <div class="muted">Status: <span id="status">-</span> | Time: <span id="time">-</span> ms</div>
+  <h4>Response Headers</h4>
+  <pre id="headers">-</pre>
+  <h4>Response Body</h4>
+  <pre id="bodyOut">-</pre>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    async function send() {
+      const url = $('url').value.trim();
+      const method = $('method').value;
+      const contentType = $('contentType').value;
+      let body = $('body').value;
+
+      const opts = { method, headers: {} };
+      if (method !== 'GET' && method !== 'DELETE') {
+        opts.headers['Content-Type'] = contentType;
+        if (contentType.includes('json')) {
+          try { body = JSON.parse(body); opts.body = JSON.stringify(body); }
+          catch(e){ /* if invalid JSON, send as raw text */ opts.body = $('body').value }
+        } else {
+          opts.body = body;
+        }
+      }
+
+      $('status').textContent = '...';
+      $('time').textContent = '-';
+      $('headers').textContent = '-';
+      $('bodyOut').textContent = '-';
+
+      const t0 = performance.now();
+      try {
+        const res = await fetch(url, opts);
+        const t1 = performance.now();
+        $('time').textContent = Math.round(t1 - t0);
+        $('status').textContent = res.status + ' ' + res.statusText;
+
+        // headers
+        const headers = {};
+        res.headers.forEach((v,k)=>headers[k]=v);
+        $('headers').textContent = JSON.stringify(headers, null, 2);
+
+        // body (try json then text)
+        let text;
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('json')) {
+          const j = await res.json();
+          $('bodyOut').textContent = JSON.stringify(j, null, 2);
+        } else {
+          text = await res.text();
+          $('bodyOut').textContent = text;
+        }
+      } catch (err) {
+        const t1 = performance.now();
+        $('time').textContent = Math.round(t1 - t0);
+        $('status').textContent = 'ERROR';
+        $('bodyOut').textContent = String(err);
+        $('headers').textContent = '-';
+      }
+    }
+
+    $('send').addEventListener('click', send);
+    $('clear').addEventListener('click', ()=>{
+      $('status').textContent = '-';
+      $('time').textContent = '-';
+      $('headers').textContent = '-';
+      $('bodyOut').textContent = '-';
+    });
+  </script>
+
+  <hr />
+  <p class="muted">Notes: If you get CORS errors while calling remote APIs, run a local static server and/or configure NexLayer/CORS accordingly. For local testing with a proxy, change the URL to your NexLayer endpoint.</p>
+</body>
+</html>
