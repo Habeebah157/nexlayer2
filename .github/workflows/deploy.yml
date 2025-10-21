@@ -1,0 +1,30 @@
+name: Deploy to Nexlayer
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node (optional for static sites)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build (no-op for static HTML)
+        run: |
+          echo "No build step required for this repo."
+
+      - name: Run deploy script (bash)
+        env:
+          NEXLAYER_TOKEN: ${{ secrets.NEXLAYER_TOKEN }}
+        run: |
+          chmod +x ./scripts/deploy_nexlayer.sh
+          ./scripts/deploy_nexlayer.sh
